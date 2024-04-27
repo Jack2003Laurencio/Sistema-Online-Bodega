@@ -46,3 +46,22 @@ def locations():
         msg='Ubicación no encontrada'
         return render_template('locations.html', msg=msg)
     cur.close()
+
+@app.route('/product_movements')
+def product_movements():
+    #create cursor
+    cur=mysql.connection.cursor()
+
+    #Get products
+    result = cur.execute("SELECT * FROM productmovements")
+
+    movements = cur.fetchall()
+
+    if result>0:
+        return render_template('product_movements.html', movements = movements)
+    else:
+        msg='Movimiento de producto no encontrada'
+        return render_template('product_movements.html', msg=msg)
+    #close connection
+    cur.close()
+
