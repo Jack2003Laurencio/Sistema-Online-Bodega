@@ -65,3 +65,44 @@ def product_movements():
     #close connection
     cur.close()
 
+@app.route('/article/<string:id>/')
+def article(id):
+    cur=mysql.connection.cursor()
+
+    result = cur.execute("SELECT * FROM articles WHERE id = %s",[id])
+
+    article = cur.fetchone()
+    return render_template('article.html', article = article)
+
+class RegisterForm(Form):
+    name = StringField('Nombre', [validators.Length(min=1, max=50)])
+    username = StringField('Usuario', [validators.Length(min=1, max=25)])
+    email = StringField('Correo', [validators.length(min=6, max=50)])
+    password = PasswordField('Contraseña', [
+        validators.DataRequired(),
+        validators.EqualTo('confirmar', message='Contraseña incorrecta')
+    ])
+    confirm = PasswordField('Confirmar contraseña')
+
+@app.route('/register', methods=['GET','POST'])
+def register():
+    form = RegisterForm(request.form)
+    if request.method == 'POST' and form.validate():
+        name = form.name.data
+        email = form.email.data
+        username = form.username.data
+        password = sha256_crypt.encrypt(str(form.password.data))
+
+        cur = mysql.connection.cursor()
+
+        cur.execute("INSERT into users(name, email, username, password) VALUES(%s,%s,%s,%s)",(name, email, username, password))
+
+        mysql.connection.commit()
+
+        cur.close()
+
+        flash("Registrado con exito", "Correcto")
+        
+        return redirect(url_for('login'))
+    return render_template('register.html', form = form)
+
