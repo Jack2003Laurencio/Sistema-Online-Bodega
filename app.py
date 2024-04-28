@@ -106,3 +106,54 @@ def register():
         return redirect(url_for('login'))
     return render_template('register.html', form = form)
 
+@app.route('/login', methods = ['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        #Get form fields
+        username = request.form['username']
+        password_candidate = request.form['password']
+
+        cur = mysql.connection.cursor()
+
+        result = cur.execute("SELECT * FROM users WHERE username = %s", [username])
+
+        if result > 0:
+            #Get the stored hash
+            data = cur.fetchone()
+            password = data['password']
+
+            #compare passwords
+            if sha256_crypt.verify(password_candidate, password):
+                #Passed
+                session['logged_in'] = True
+                session['username'] = username
+
+                flash("Inicio de sesión exitoso","Correcto")
+                return redirect(url_for('dashboard'))
+            else:
+                error = 'Contraseña y/o Usuario invalido'
+                return render_template('login.html', error=error)
+            #Close connection
+            cur.close()
+        else:
+            error = 'Usuario no encontrado'
+            return render_template('login.html', error=error)
+    return render_template('login.html')
+
+def is_logged_in(f):
+    @wraps(f)
+    def wrap(*args, **kwargs):
+        if 'logged_in' in session:
+            return f(*args, **kwargs)
+        else:
+            flash('Por favor iniciar sesión','Peligro')
+            return redirect(url_for('login'))
+    return wrap
+
+@app.route('/logout')
+@is_logged_in
+def logout():
+    session.clear()
+    flash("Se ha deslogeado", "Adios")
+    return redirect(url_for('login'))
+
