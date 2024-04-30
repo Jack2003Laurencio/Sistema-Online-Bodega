@@ -157,3 +157,52 @@ def logout():
     flash("Se ha deslogeado", "Adios")
     return redirect(url_for('login'))
 
+#Dashboard
+@app.route('/dashboard')
+@is_logged_in
+def dashboard():
+    #create cursor
+    cur=mysql.connection.cursor()
+    cur=mysql.connection.cursor()
+
+    result = cur.execute("SELECT product_id, location_id, qty FROM product_balance")
+
+    products = cur.fetchall()
+    cur.execute("SELECT location_id FROM locations")
+    locations = cur.fetchall()
+    locs = []
+    for i in locations:
+        locs.append(list(i.values())[0])
+
+    if result>0:
+        return render_template('dashboard.html', products = products, locations = locs)
+    else:
+        msg='Productos no encontrados'
+        return render_template('dashboard.html', msg=msg)
+    cur.close()
+
+
+class ProductForm(Form):
+    product_id = StringField('Product ID', [validators.Length(min=1, max=200)])
+
+#Add Product
+@app.route('/add_product', methods=['GET', 'POST'])
+@is_logged_in
+def add_product():
+    form = ProductForm(request.form)
+    if request.method == 'POST' and form.validate():
+        product_id = form.product_id.data
+
+        cur = mysql.connection.cursor()
+
+        cur.execute("INSERT into products VALUES(%s)",(product_id,))
+
+        mysql.connection.commit()
+
+        cur.close()
+
+        flash("Producto añadido con exito", "Genial")
+
+        return redirect(url_for('products'))
+
+    return render_template('add_product.html', form=form)
