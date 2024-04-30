@@ -206,3 +206,52 @@ def add_product():
         return redirect(url_for('products'))
 
     return render_template('add_product.html', form=form)
+
+#Edit Product
+@app.route('/edit_product/<string:id>', methods=['GET', 'POST'])
+@is_logged_in
+def edit_product(id):
+    cur = mysql.connection.cursor()
+
+    result = cur.execute("SELECT * FROM products where product_id = %s", [id])
+
+    product = cur.fetchone()
+
+    form = ProductForm(request.form)
+
+    form.product_id.data = product['product_id']
+
+    if request.method == 'POST' and form.validate():
+        product_id = request.form['product_id']
+        cur = mysql.connection.cursor()
+
+        cur.execute("UPDATE products SET product_id=%s WHERE product_id=%s",(product_id, id))
+
+        mysql.connection.commit()
+
+        cur.close()
+
+        flash("Producto actualizado", "Exito")
+
+        return redirect(url_for('products'))
+
+    return render_template('edit_product.html', form=form)
+
+#Delete Product
+@app.route('/delete_product/<string:id>', methods=['POST'])
+@is_logged_in
+def delete_product(id):
+    cur = mysql.connection.cursor()
+
+    cur.execute("DELETE FROM products WHERE product_id=%s", [id])
+
+    mysql.connection.commit()
+
+    cur.close()
+
+    flash("Producto eliminado", "Exito")
+
+    return redirect(url_for('products'))
+
+class LocationForm(Form):
+    location_id = StringField('Location ID', [validators.Length(min=1, max=200)])
