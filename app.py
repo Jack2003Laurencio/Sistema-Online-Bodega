@@ -255,3 +255,54 @@ def delete_product(id):
 
 class LocationForm(Form):
     location_id = StringField('Location ID', [validators.Length(min=1, max=200)])
+
+@app.route('/add_location', methods=['GET', 'POST'])
+@is_logged_in
+def add_location():
+    form = LocationForm(request.form)
+    if request.method == 'POST' and form.validate():
+        location_id = form.location_id.data
+
+        cur = mysql.connection.cursor()
+
+        cur.execute("INSERT into locations VALUES(%s)",(location_id,))
+
+        mysql.connection.commit()
+
+        cur.close()
+
+        flash("Ubicación añadida", "Exito")
+
+        return redirect(url_for('locations'))
+
+    return render_template('add_location.html', form=form)
+
+#Edit Location
+@app.route('/edit_location/<string:id>', methods=['GET', 'POST'])
+@is_logged_in
+def edit_location(id):
+    cur = mysql.connection.cursor()
+
+    result = cur.execute("SELECT * FROM locations where location_id = %s", [id])
+
+    location = cur.fetchone()
+
+    form = LocationForm(request.form)
+
+    form.location_id.data = location['location_id']
+
+    if request.method == 'POST' and form.validate():
+        location_id = request.form['location_id']
+        cur = mysql.connection.cursor()
+
+        cur.execute("UPDATE locations SET location_id=%s WHERE location_id=%s",(location_id, id))
+
+        mysql.connection.commit()
+
+        cur.close()
+
+        flash("Ubicación actualizada", "Exito")
+
+        return redirect(url_for('locations'))
+
+    return render_template('edit_location.html', form=form)
