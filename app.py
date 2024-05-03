@@ -329,3 +329,87 @@ class ProductMovementForm(Form):
     product_id = SelectField('Nombre de producto', choices=[])
     qty = IntegerField('Cantidad')
 
+@app.route('/add_product_movements', methods=['GET', 'POST'])
+@is_logged_in
+def add_product_movements():
+    form = ProductMovementForm(request.form) 
+    cur = mysql.connection.cursor()
+    cur.execute("SELECT product_id FROM products")
+    products = cur.fetchall()
+    prods = []
+    for p in products:
+        prods.append(list(p.values())[0])
+    cur.execute("SELECT location_id FROM locations")
+    locations = cur.fetchall()
+    locs = []
+    for i in locations:
+        locs.append(list(i.values())[0])
+    #app.logger.info(type(locations[0]))
+    form.from_location.choices = [(l,l) for l in locs]
+    form.from_location.choices.append(("--","--"))
+    form.to_location.choices = [(l,l) for l in locs]
+    form.to_location.choices.append(("--","--"))
+    form.product_id.choices = [(p,p) for p in prods]
+    if request.method == 'POST' and form.validate():
+        from_location = form.from_location.data
+        to_location = form.to_location.data
+        product_id = form.product_id.data
+        qty = form.qty.data
+        #Create cursor
+        cur = mysql.connection.cursor() 
+        #execute
+        cur.execute("INSERT into productmovements(from_location, to_location, product_id, qty) VALUES(%s, %s, %s, %s)",(from_location, to_location, product_id, qty))
+
+        mysql.connection.commit()
+
+        if from_location == "--":
+            result = cur.execute("SELECT * from product_balance where location_id=%s and product_id=%s",(to_location, product_id))
+            result = cur.fetchone()
+            app.logger.info(result)
+            if result!=None:
+                if(len(result))>0:
+                    Quantity = result["qty"]
+                    q = Quantity + qty 
+                    cur.execute("UPDATE product_balance set qty=%s where location_id=%s and product_id=%s",(q, to_location, product_id))
+            else:
+                cur.execute("INSERT into product_balance(product_id, location_id, qty) values(%s, %s, %s)",(product_id, to_location, qty))
+        elif to_location == "--":
+            result = cur.execute("SELECT * from product_balance where location_id=%s and product_id=%s",(from_location, product_id))
+            result = cur.fetchone()
+            app.logger.info(result)
+            if result!=None:
+                if(len(result))>0:
+                    Quantity = result["qty"]
+                    q = Quantity - qty 
+                    cur.execute("UPDATE product_balance set qty=%s where location_id=%s and product_id=%s",(q, from_location, product_id))
+            else:
+                cur.execute("INSERT into product_balance(product_id, location_id, qty) values(%s, %s, %s)",(product_id, from_location, qty))
+        else: 
+            result = cur.execute("SELECT * from product_balance where location_id=%s and product_id=%s",(to_location, product_id))
+            result = cur.fetchone()
+            if result!=None:
+                if(len(result))>0:
+                    Quantity = result["qty"]
+                    q = Quantity + qty 
+                    cur.execute("UPDATE product_balance set qty=%s where location_id=%s and product_id=%s",(q, to_location, product_id))
+            else:
+                cur.execute("INSERT into product_balance(product_id, location_id, qty) values(%s, %s, %s)",(product_id, to_location, qty))
+            
+            result = cur.execute("SELECT * from product_balance where location_id=%s and product_id=%s",(from_location, product_id))
+            result = cur.fetchone()
+            if result!=None:
+                if(len(result))>0:
+                    Quantity = result["qty"]
+                    q = Quantity - qty 
+                    cur.execute("UPDATE product_balance set qty=%s where location_id=%s and product_id=%s",(q, from_location, product_id))
+            else:
+                cur.execute("INSERT into product_balance(product_id, location_id, qty) values(%s, %s, %s)",(product_id, from_location, qty))
+        mysql.connection.commit()   
+
+        cur.close()
+
+        flash("Producto movido con exito", "Exito")
+
+        return redirect(url_for('product_movements'))
+
+    return render_template('add_product_movements.html', form=form)
