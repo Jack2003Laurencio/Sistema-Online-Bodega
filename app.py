@@ -306,3 +306,26 @@ def edit_location(id):
         return redirect(url_for('locations'))
 
     return render_template('edit_location.html', form=form)
+
+@app.route('/delete_location/<string:id>', methods=['POST'])
+@is_logged_in
+def delete_location(id):
+    cur = mysql.connection.cursor()
+
+    cur.execute("DELETE FROM locations WHERE location_id=%s", [id])
+
+    mysql.connection.commit()
+
+    cur.close()
+
+    flash("Ubicación borrada", "Exito")
+
+    return redirect(url_for('locations'))
+
+
+class ProductMovementForm(Form):
+    from_location = SelectField('De', choices=[])
+    to_location = SelectField('Hacia', choices=[])
+    product_id = SelectField('Nombre de producto', choices=[])
+    qty = IntegerField('Cantidad')
+
