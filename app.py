@@ -413,3 +413,4 @@ def add_product_movements():
         return redirect(url_for('product_movements'))
 
     return render_template('add_product_movements.html', form=form)
+
