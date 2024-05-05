@@ -414,3 +414,34 @@ def add_product_movements():
 
     return render_template('add_product_movements.html', form=form)
 
+@app.route('/edit_product_movement/<string:id>', methods=['GET', 'POST'])
+@is_logged_in
+def edit_product_movements(id):
+    form = ProductMovementForm(request.form) 
+    #Create cursor
+    cur = mysql.connection.cursor()
+    cur.execute("SELECT product_id FROM products")
+    products = cur.fetchall()
+    prods = []
+    for p in products:
+        prods.append(list(p.values())[0])
+    cur.execute("SELECT location_id FROM locations")
+    locations = cur.fetchall()
+    locs = []
+    for i in locations:
+        locs.append(list(i.values())[0])
+    #app.logger.info(type(locations[0]))
+    form.from_location.choices = [(l,l) for l in locs]
+    form.from_location.choices.append(("--","--"))
+    form.to_location.choices = [(l,l) for l in locs]
+    form.to_location.choices.append(("--","--"))
+    form.product_id.choices = [(p,p) for p in prods]
+
+    result = cur.execute("SELECT * FROM productmovements where movement_id = %s", [id])
+
+    movement = cur.fetchone()
+
+    form.from_location.data = movement['from_location']
+    form.to_location.data = movement['to_location']
+    form.product_id.data = movement['product_id']
+    form.qty.data = movement['qty']
