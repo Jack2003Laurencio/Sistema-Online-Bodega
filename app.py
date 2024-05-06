@@ -445,3 +445,39 @@ def edit_product_movements(id):
     form.to_location.data = movement['to_location']
     form.product_id.data = movement['product_id']
     form.qty.data = movement['qty']
+
+    if request.method == 'POST' and form.validate():
+        from_location = request.form['from_location']
+        to_location = request.form['to_location']
+        product_id = request.form['product_id']
+        qty = int(request.form['qty'])
+        #create cursor
+        cur = mysql.connection.cursor()
+
+        cur.execute("UPDATE productmovements SET from_location=%s, to_location=%s, product_id=%s, qty=%s WHERE movement_id=%s",(from_location, to_location, product_id, qty, id))
+
+        #commit to DB
+        mysql.connection.commit()
+
+        if from_location == "--":
+            result = cur.execute("SELECT * from product_balance where location_id=%s and product_id=%s",(to_location, product_id))
+            result = cur.fetchone()
+            app.logger.info(result)
+            if result!=None:
+                if(len(result))>0:
+                    Quantity = result["qty"]
+                    q = Quantity + qty 
+                    cur.execute("UPDATE product_balance set qty=%s where location_id=%s and product_id=%s",(q, to_location, product_id))
+            else:
+                cur.execute("INSERT into product_balance(product_id, location_id, qty) values(%s, %s, %s)",(product_id, to_location, qty))
+        elif to_location == "--":
+            result = cur.execute("SELECT * from product_balance where location_id=%s and product_id=%s",(from_location, product_id))
+            result = cur.fetchone()
+            app.logger.info(result)
+            if result!=None:
+                if(len(result))>0:
+                    Quantity = result["qty"]
+                    q = Quantity - qty 
+                    cur.execute("UPDATE product_balance set qty=%s where location_id=%s and product_id=%s",(q, from_location, product_id))
+            else:
+                cur.execute("INSERT into product_balance(product_id, location_id, qty) values(%s, %s, %s)",(product_id, from_location, qty))
