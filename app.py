@@ -481,3 +481,31 @@ def edit_product_movements(id):
                     cur.execute("UPDATE product_balance set qty=%s where location_id=%s and product_id=%s",(q, from_location, product_id))
             else:
                 cur.execute("INSERT into product_balance(product_id, location_id, qty) values(%s, %s, %s)",(product_id, from_location, qty))
+        else: 
+            result = cur.execute("SELECT * from product_balance where location_id=%s and product_id=%s",(to_location, product_id))
+            result = cur.fetchone()
+            if result!=None:
+                if(len(result))>0:
+                    Quantity = result["qty"]
+                    q = Quantity + qty 
+                    cur.execute("UPDATE product_balance set qty=%s where location_id=%s and product_id=%s",(q, to_location, product_id))
+            else:
+                cur.execute("INSERT into product_balance(product_id, location_id, qty) values(%s, %s, %s)",(product_id, to_location, qty))
+            
+            result = cur.execute("SELECT * from product_balance where location_id=%s and product_id=%s",(from_location, product_id))
+            result = cur.fetchone()
+            if result!=None:
+                if(len(result))>0:
+                    Quantity = result["qty"]
+                    q = Quantity - qty 
+                    cur.execute("UPDATE product_balance set qty=%s where location_id=%s and product_id=%s",(q, from_location, product_id))
+            else:
+                cur.execute("INSERT into product_balance(product_id, location_id, qty) values(%s, %s, %s)",(product_id, from_location, qty))
+        mysql.connection.commit()   
+
+        flash("Movimiento de producto actualizado con exito", "Exito")
+
+        return redirect(url_for('product_movements'))
+
+    return render_template('edit_product_movements.html', form=form)
+
