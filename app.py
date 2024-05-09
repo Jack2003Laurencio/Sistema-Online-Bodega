@@ -509,3 +509,21 @@ def edit_product_movements(id):
 
     return render_template('edit_product_movements.html', form=form)
 
+@app.route('/delete_product_movements/<string:id>', methods=['POST'])
+@is_logged_in
+def delete_product_movements(id):
+    cur = mysql.connection.cursor()
+
+    cur.execute("DELETE FROM productmovements WHERE movement_id=%s", [id])
+
+    mysql.connection.commit()
+
+    cur.close()
+
+    flash("Movimiento de producto eliminado", "Exito")
+
+    return redirect(url_for('product_movements'))
+
+if __name__ == '__main__':
+    app.secret_key = "secret123"
+    app.run(debug=True)
